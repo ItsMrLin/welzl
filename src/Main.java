@@ -1,10 +1,13 @@
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
+import java.awt.Graphics;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.geom.Point2D;
+import java.util.HashSet;
 import java.util.Random;
+import java.util.Set;
 import java.util.Vector;
 
 import javax.swing.JButton;
@@ -14,10 +17,11 @@ import javax.swing.JPanel;
 public class Main {
 	final static int SCREEN_SIZE = 500;
 	static Vector<Point2D> boundarySet = new Vector<Point2D>();
+	static Set<Point2D> pointSet = new HashSet<Point2D>();
 	static CircleDouble circle = new CircleDouble(0, 0, 0);
-	static Point2D.Double testArray[] = {new Point2D.Double(409.68237674047157, 198.5028016392349),
-		new Point2D.Double(108.368466910509, 6.1412859291253845),
-		new Point2D.Double(156.73257862031997, 483.06707383975737)};
+	static Point2D.Double testArray[] = { new Point2D.Double(90.37377482652592, 464.61414240308363),
+			new Point2D.Double(171.59870451429614, 104.96950450247822), new Point2D.Double(10.4172244332896202, 393.31807326959074),
+			new Point2D.Double(485.6295633967431, 273.60459813672486) };
 	/**
 	 * @param args
 	 */
@@ -39,39 +43,50 @@ public class Main {
 		addButton.addActionListener(new ActionListener() {
 			Random random = new Random();
 			int index = 0;
+
 			@Override
 			public void actionPerformed(ActionEvent e) {
-				Point2D point = new Point2D.Double(random.nextDouble() * SCREEN_SIZE, random.nextDouble() * SCREEN_SIZE);
-//				Point2D point = testArray[index];
-//				index++;
+				Point2D point = testArray[index];
+				index++;
+				//Point2D point = new Point2D.Double(random.nextDouble() * SCREEN_SIZE, random.nextDouble() * SCREEN_SIZE);
+				panel.getGraphics().clearRect(0, 0, SCREEN_SIZE, SCREEN_SIZE);
+				panel.setBackground(Color.WHITE);
 				panel.getGraphics().setColor(Color.BLACK);
-				panel.getGraphics().fillRect((int) point.getX() - 2, (int) point.getY() - 2, 4, 4);
+				pointSet.add(point);
+				for (Point2D point1 : pointSet) {
+					panel.getGraphics().fillRect((int) point1.getX() - 2, (int) point1.getY() - 2, 4, 4);
+				}
+				// Point2D point = testArray[index];
+				// index++;
 				if (boundarySet.isEmpty()) {
 					boundarySet.add(point);
 					circle.setCenter(point);
 					circle.setRadius(0);
 				} else {
-					if (boundarySet.size() == 1) {
-						circle = new CircleDouble(boundarySet.get(0), point);
-						boundarySet.add(point);
-					} else {
-						if (boundarySet.size() == 2) {
-							circle = updatedTwo(boundarySet, point);
+					if (!circle.contains(point)) {
+						if (boundarySet.size() == 1) {
+							circle = new CircleDouble(boundarySet.get(0), point);
+							boundarySet.add(point);
 						} else {
-							if (boundarySet.size() == 3) {
-								circle = updatedThree(boundarySet, point);
+							if (boundarySet.size() == 2) {
+								circle = updatedTwo(boundarySet, point);
 							} else {
-								System.out.println("CASE 4!");
+								if (boundarySet.size() == 3) {
+									circle = updatedThree(boundarySet, point);
+								} else {
+									System.out.println("CASE 4!");
+								}
 							}
 						}
 					}
 				}
 				panel.getGraphics().drawOval((int) (circle.getCenterX() - circle.getRadius()),
 						(int) (circle.getCenterY() - circle.getRadius()), 2 * (int) circle.getRadius(), 2 * (int) circle.getRadius());
-				panel.getGraphics().setColor(Color.RED);
-				//System.out.println(boundarySet);
+
+				System.out.println("new Point: " + point);
+				// System.out.println(boundarySet);
 				for (Point2D point1 : boundarySet) {
-					System.out.println(point1+" contains?: "+circle.contains(point1));
+					System.out.println(point1 + " contains?: " + circle.contains(point1));
 					panel.getGraphics().fillRect((int) point1.getX() - 2, (int) point1.getY() - 2, 4, 4);
 				}
 				System.out.println("----------------------");
@@ -87,6 +102,7 @@ public class Main {
 			@Override
 			public void actionPerformed(ActionEvent e) {
 				panel.repaint();
+				pointSet.clear();
 				boundarySet.clear();
 			}
 
@@ -102,7 +118,7 @@ public class Main {
 
 		Point2D.Double p0 = (Point2D.Double) supportSet.elementAt(0);
 		Point2D.Double p1 = (Point2D.Double) supportSet.elementAt(1);
-		CircleDouble[] circles = new CircleDouble[2];
+		CircleDouble[] circles = new CircleDouble[3];
 		CircleDouble mCir;
 		double minRadius = Double.MAX_VALUE;
 		int exclusiveIndex = -1;
@@ -122,13 +138,17 @@ public class Main {
 			// p1 is not on the perimeter anymore
 			exclusiveIndex = 1;
 		}
+		
+		circles[2] = new CircleDouble(p0, p1, p);
+		if (circles[2].getRadius() < minRadius){
+			exclusiveIndex = 2;
+		}
 
-		if (exclusiveIndex != -1) {
-			mCir = circles[exclusiveIndex];
+		mCir = circles[exclusiveIndex];
+		if (exclusiveIndex != 2) {
 			// one point in supportSet is replaced by p
 			supportSet.set(exclusiveIndex, p);
 		} else {
-			mCir = new CircleDouble(p0, p1, p);
 			// p is on the perimeter, then add p to supportSet
 			supportSet.add(p);
 		}
@@ -196,12 +216,14 @@ public class Main {
 		if (exclusiveIndex != -1) {
 			mCir = circles[exclusiveIndex];
 		} else {
-			mCir = circles[0];
-			for (CircleDouble c : circles) {
-				if (c.getRadius() > mCir.getRadius()) {
-					mCir = c;
-				}
-			}
+			mCir = null;
+			System.out.println("Wrong!!!!!!!!!!");
+//			mCir = circles[0];
+//			for (CircleDouble c : circles) {
+//				if (c.getRadius() > mCir.getRadius()) {
+//					mCir = c;
+//				}
+//			}
 		}
 		Point2D point;
 		switch (exclusiveIndex) {
